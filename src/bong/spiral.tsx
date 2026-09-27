@@ -51,7 +51,7 @@ export function Spiral({ pulse, step }: SpiralProps) {
         playing = true;
       }
       const elapsed = (now - born) / 1000;
-      if (playing && elapsed > 2.8) playing = false;
+      if (playing && elapsed > 2.2) playing = false;
       const width = sheet.width;
       const height = sheet.height;
       const field = css("--color-field", "#2189d6");
@@ -72,11 +72,11 @@ export function Spiral({ pulse, step }: SpiralProps) {
       paint.fillRect(0, 0, width, height);
 
       const minSide = Math.min(width, height);
-      const open = playing ? Math.min(elapsed / 1.15, 1) : 0;
+      const open = playing ? Math.min(elapsed / 0.7, 1) : 0;
       const fade = playing && elapsed > 2.05 ? Math.max(0, 1 - (elapsed - 2.05) / 0.75) : playing ? 1 : 0.95;
       const radius = minSide * (playing ? 0.07 + open * 0.3 : 0.085);
       const scatter = playing ? 8 + open * 78 : 5;
-      const kick = playing ? Math.max(0, 1 - Math.abs(elapsed - Math.max(stepRef.current, 0) * 0.38) * 1.6) : 0;
+      const kick = playing ? Math.max(0, 1 - Math.abs(elapsed - Math.max(stepRef.current, 0) * 0.16) * 1.6) : 0;
       paint.fillStyle = ink;
       for (const dot of dots) {
         const wobble = Math.sin(now / 900 + dot.drift) * scatter;
