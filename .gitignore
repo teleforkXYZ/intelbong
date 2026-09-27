@@ -1,0 +1,12 @@
+node_modules
+.vercel
+.env
+.env.*
+*.log
+screenshots
+.grok/og-pending
+.output
+dist
+attachments
+artifacts
+.env*
