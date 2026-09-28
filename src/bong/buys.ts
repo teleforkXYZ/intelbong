@@ -1,38 +1,38 @@
 const RPC = "https://rpc.mainnet.chain.robinhood.com";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const ZERO = "0x0000000000000000000000000000000000000000";
 
-const TOKEN_GETTER = "0xfc0c546a";
-const DESCRIPTION = "0x7284e416";
-const WEBSITE = "0xbeb0a416";
-const X_HANDLE = "0xd286bb4f";
-
+export const TOKEN = "0xc72b96e0e48ecd4dc75e1e45396e26300bc39681";
+export const SYMBOL = "INTC";
 export const EXPLORER = "https://robinhoodchain.blockscout.com";
 
-export type Side = "buy" | "sell" | "mint" | "burn";
+export type Side = "buy" | "sell";
 
 export type Move = {
   hash: string;
   side: Side;
-  from: string;
-  to: string;
+  wallet: string;
   amount: string;
+  raw: number;
   at: number;
-};
-
-export type Socials = {
-  description: string;
-  website: string;
-  xHandle: string;
 };
 
 type RawLog = {
   transactionHash?: string;
   topics?: string[];
   data?: string;
+  address?: string;
 };
 
-const codeCache = new Map<string, boolean>();
+const TOKEN_GETTER = "0xfc0c546a";
+const DESCRIPTION = "0x7284e416";
+const WEBSITE = "0xbeb0a416";
+const X_HANDLE = "0xd286bb4f";
+
+export type Socials = {
+  description: string;
+  website: string;
+  xHandle: string;
+};
 
 export async function readTunedToken(ear: string) {
   const result = (await rpc("eth_call", [{ to: ear, data: TOKEN_GETTER }, "latest"])) as string;
@@ -52,83 +52,129 @@ export async function readSocials(ear: string): Promise<Socials | null> {
   return { description, website, xHandle };
 }
 
-export function watchMoves(token: string, onMove: (move: Move) => void, signal: AbortSignal) {
+export async function recentSwaps(token: string, limit = 6): Promise<Move[]> {
+  const logs = await tokenLogs(token, 2500);
+  const hashes: string[] = [];
+  const seen = new Set<string>();
+  for (const log of logs) {
+    const hash = log.transactionHash;
+    if (!hash || seen.has(hash)) continue;
+    seen.add(hash);
+    hashes.push(hash);
+  }
+  const pool = busiest(logs);
+  const moves: Move[] = [];
+  for (const hash of hashes.slice(-18)) {
+    const move = await swapFromReceipt(token, hash, pool);
+    if (move) moves.push(move);
+  }
+  return moves.slice(-limit).reverse();
+}
+
+export function watchSwaps(token: string, onMove: (move: Move) => void, signal: AbortSignal) {
   const seen = new Set<string>();
   let primed = false;
+  let pool = "";
 
   async function tick() {
     if (signal.aborted) return;
-    const head = (await rpc("eth_blockNumber", [])) as string;
-    const latest = Number.parseInt(head, 16);
-    const fromBlock = `0x${Math.max(0, latest - 40).toString(16)}`;
-    const logs = (await rpc("eth_getLogs", [
-      { address: token, fromBlock, toBlock: "latest", topics: [TRANSFER] },
-    ])) as RawLog[];
+    const logs = await tokenLogs(token, 30);
+    if (!pool) pool = busiest(logs);
     for (const log of logs) {
       const hash = log.transactionHash;
-      const topics = log.topics ?? [];
-      if (!hash || topics.length < 3 || seen.has(hash)) continue;
+      if (!hash || seen.has(hash)) continue;
       seen.add(hash);
       if (!primed) continue;
-      const from = topicAddress(topics[1]);
-      const to = topicAddress(topics[2]);
-      const side = await classify(from, to);
-      if (signal.aborted) return;
-      onMove({
-        hash,
-        side,
-        from,
-        to,
-        amount: formatAmount(log.data ?? "0x0"),
-        at: Date.now(),
-      });
+      const move = await swapFromReceipt(token, hash, pool);
+      if (signal.aborted || !move) continue;
+      onMove(move);
     }
     primed = true;
   }
 
   const beat = window.setInterval(() => {
     void tick().catch(() => undefined);
-  }, 6000);
+  }, 7000);
   void tick().catch(() => undefined);
   signal.addEventListener("abort", () => window.clearInterval(beat));
 }
 
-async function classify(from: string, to: string): Promise<Side> {
-  if (from.toLowerCase() === ZERO) return "mint";
-  if (to.toLowerCase() === ZERO) return "burn";
-  const [fromCode, toCode] = await Promise.all([hasCode(from), hasCode(to)]);
-  if (fromCode && !toCode) return "buy";
-  if (!fromCode && toCode) return "sell";
-  return fromCode ? "buy" : "sell";
+async function tokenLogs(token: string, span: number) {
+  const head = (await rpc("eth_blockNumber", [])) as string;
+  const latest = Number.parseInt(head, 16);
+  const fromBlock = `0x${Math.max(0, latest - span).toString(16)}`;
+  return (await rpc("eth_getLogs", [
+    { address: token, fromBlock, toBlock: "latest", topics: [TRANSFER] },
+  ])) as RawLog[];
 }
 
-async function hasCode(address: string) {
-  const key = address.toLowerCase();
-  const cached = codeCache.get(key);
-  if (cached !== undefined) return cached;
-  const code = (await rpc("eth_getCode", [address, "latest"])) as string;
-  const present = typeof code === "string" && code !== "0x" && code.length > 2;
-  codeCache.set(key, present);
-  return present;
-}
-
-function topicAddress(topic: string) {
-  return `0x${topic.slice(-40)}`;
-}
-
-function formatAmount(data: string) {
-  try {
-    const raw = BigInt(data);
-    const whole = raw / 10n ** 18n;
-    if (whole >= 1_000_000_000n) return `${trim(whole, 1_000_000_000n)}B`;
-    if (whole >= 1_000_000n) return `${trim(whole, 1_000_000n)}M`;
-    if (whole >= 1_000n) return `${trim(whole, 1_000n)}K`;
-    if (whole > 0n) return whole.toString();
-    const frac = Number(raw) / 1e18;
-    return frac < 0.01 ? "<0.01" : frac.toFixed(2);
-  } catch {
-    return "—";
+function busiest(logs: RawLog[]) {
+  const counts = new Map<string, number>();
+  for (const log of logs) {
+    const topics = log.topics ?? [];
+    if (topics.length < 3) continue;
+    for (const topic of [topics[1], topics[2]]) {
+      const address = `0x${topic.slice(-40)}`.toLowerCase();
+      counts.set(address, (counts.get(address) ?? 0) + 1);
+    }
   }
+  let best = "";
+  let score = 0;
+  for (const [address, count] of counts) {
+    if (count > score) {
+      best = address;
+      score = count;
+    }
+  }
+  return best;
+}
+
+async function swapFromReceipt(token: string, hash: string, pool: string): Promise<Move | null> {
+  const receipt = (await rpc("eth_getTransactionReceipt", [hash])) as { logs?: RawLog[] } | null;
+  if (!receipt?.logs) return null;
+  const nets = new Map<string, bigint>();
+  for (const log of receipt.logs) {
+    if ((log.address ?? "").toLowerCase() !== token.toLowerCase()) continue;
+    const topics = log.topics ?? [];
+    if (topics[0] !== TRANSFER || topics.length < 3) continue;
+    const amount = BigInt(log.data ?? "0x0");
+    const from = `0x${topics[1].slice(-40)}`.toLowerCase();
+    const to = `0x${topics[2].slice(-40)}`.toLowerCase();
+    nets.set(from, (nets.get(from) ?? 0n) - amount);
+    nets.set(to, (nets.get(to) ?? 0n) + amount);
+  }
+  const poolNet = nets.get(pool) ?? 0n;
+  if (poolNet === 0n) return null;
+  const side: Side = poolNet < 0n ? "buy" : "sell";
+  let wallet = "";
+  let best = 0n;
+  for (const [address, net] of nets) {
+    if (address === pool) continue;
+    if (side === "buy" && net > best) {
+      best = net;
+      wallet = address;
+    }
+    if (side === "sell" && (wallet === "" || net < best)) {
+      best = net;
+      wallet = address;
+    }
+  }
+  const rawBig = best < 0n ? -best : best;
+  if (rawBig === 0n) return null;
+  const raw = Number(rawBig) / 1e18;
+  return { hash, side, wallet, amount: formatAmount(rawBig), raw, at: Date.now() };
+}
+
+function formatAmount(raw: bigint) {
+  const whole = raw / 10n ** 18n;
+  if (whole >= 1_000_000n) return `${trim(whole, 1_000_000n)}M`;
+  if (whole >= 1_000n) return `${trim(whole, 1_000n)}K`;
+  if (whole >= 1n) {
+    const frac = (raw % 10n ** 18n) / 10n ** 16n;
+    return `${whole}.${frac.toString().padStart(2, "0")}`;
+  }
+  const small = Number(raw) / 1e18;
+  return small < 0.01 ? small.toFixed(4) : small.toFixed(2);
 }
 
 function trim(whole: bigint, unit: bigint) {

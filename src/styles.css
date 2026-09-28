@@ -3,7 +3,7 @@
 @theme {
   --color-field: #0b3f86;
   --color-glow: #1d6fd4;
-  --color-chip: #c46a2f;
+  --color-chip: #e08a45;
   --color-buy: #7dffb2;
   --color-sell: #ffb0c4;
   --color-ink: #f4f9ff;
@@ -32,4 +32,19 @@
     background: var(--color-ink);
     color: var(--color-field);
   }
+}
+
+@keyframes pop {
+  from {
+    transform: translateY(10px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.pop-in {
+  animation: pop 420ms ease-out;
 }
