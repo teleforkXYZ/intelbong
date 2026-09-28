@@ -1,10 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-field: #2189d6;
-  --color-glow: #3aa0e4;
+  --color-field: #0b3f86;
+  --color-glow: #1d6fd4;
+  --color-chip: #c46a2f;
+  --color-buy: #7dffb2;
+  --color-sell: #ffb0c4;
   --color-ink: #f4f9ff;
-  --color-dim: #9ec8e4;
+  --color-dim: #9ec4ea;
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
