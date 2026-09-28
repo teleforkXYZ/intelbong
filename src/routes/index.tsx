@@ -51,7 +51,7 @@ export function Home() {
         (move) => {
           setCards((list) => [{ ...move, fresh: true }, ...list.filter((item) => item.hash !== move.hash)].slice(0, 8));
           setPulse((value) => value + 1);
-          if (sound) playTheme(setStep);
+          if (sound && move.side === "buy") playTheme(setStep);
         },
         inner.signal,
       );
@@ -160,7 +160,7 @@ export function Home() {
           </button>
           <p className="max-w-md text-center text-sm leading-6 text-ink/90">{copy.description}</p>
           <p className="max-w-sm text-center text-xs leading-5 text-dim">
-            Tap once so new buys and sells can play the theme. Not Intel Corporation.
+            Tap once so the next buy can honk the theme. Sells stay quiet. Not Intel Corporation.
           </p>
         </div>
       </div>
