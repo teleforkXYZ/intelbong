@@ -199,7 +199,7 @@ function TradeCard({ card }: { card: Card }) {
         {card.amount}
         <span className="ml-2 text-lg text-dim">{SYMBOL}</span>
       </p>
-      <p className="mt-3 font-mono text-[11px] text-chip">{buy ? "tokens left the pool" : "tokens hit the pool"}</p>
+      <p className="mt-3 font-mono text-[11px] text-chip">{buy ? "tokens hit the pool" : "tokens left the pool"}</p>
     </a>
   );
 }
