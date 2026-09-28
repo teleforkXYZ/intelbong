@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { NOTE_NAMES, playTheme } from "@/bong/audio";
 import {
   EXPLORER,
@@ -25,15 +25,9 @@ export function Home() {
   const [cards, setCards] = useState<Card[]>([]);
   const [copy, setCopy] = useState(FALLBACK);
   const [token, setToken] = useState(TOKEN);
-  const [draft, setDraft] = useState("");
-  const armRef = useRef<(next: string) => void>(() => {});
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const saved = window.localStorage.getItem("bong-ca") ?? "";
-    const override = (params.get("ca") ?? saved).trim();
     let current = "";
-    let pinned = /^0x[a-fA-F0-9]{40}$/.test(override) ? override : "";
     let stopWatch = () => {};
     let sound = false;
 
@@ -60,39 +54,19 @@ export function Home() {
       );
     }
 
-    armRef.current = (next: string) => {
-      const clean = next.trim();
-      if (!/^0x[a-fA-F0-9]{40}$/.test(clean)) return;
-      pinned = clean;
-      window.localStorage.setItem("bong-ca", clean);
-      arm(clean);
-    };
-
     function unlock() {
       sound = true;
     }
     window.addEventListener("pointerdown", unlock, { once: true });
 
-    if (pinned) arm(pinned);
-
     const beat = window.setInterval(() => {
       void readTunedToken(EAR)
-        .then((tuned) => {
-          if (/^0x[a-fA-F0-9]{40}$/.test(tuned)) arm(tuned);
-          else if (!pinned) arm(TOKEN);
-        })
-        .catch(() => {
-          if (!pinned) arm(TOKEN);
-        });
+        .then((tuned) => arm(/^0x[a-fA-F0-9]{40}$/.test(tuned) ? tuned : TOKEN))
+        .catch(() => arm(TOKEN));
     }, 8000);
     void readTunedToken(EAR)
-      .then((tuned) => {
-        if (/^0x[a-fA-F0-9]{40}$/.test(tuned)) arm(tuned);
-        else if (!pinned) arm(TOKEN);
-      })
-      .catch(() => {
-        if (!pinned) arm(TOKEN);
-      });
+      .then((tuned) => arm(/^0x[a-fA-F0-9]{40}$/.test(tuned) ? tuned : TOKEN))
+      .catch(() => arm(TOKEN));
     void readSocials(EAR)
       .then((next) => {
         if (next?.description) setCopy({ ...FALLBACK, ...next });
@@ -128,25 +102,6 @@ export function Home() {
             <p className="mt-2 font-mono text-xs text-chip">
               ${SYMBOL} · {short(token)}
             </p>
-            <form
-              className="mt-3 flex max-w-md gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                armRef.current(draft);
-                setDraft("");
-              }}
-            >
-              <input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder="Paste CA"
-                spellCheck={false}
-                className="min-h-11 min-w-0 flex-1 rounded-full border border-ink/30 bg-[#072a5c]/80 px-4 font-mono text-xs text-ink outline-none"
-              />
-              <button type="submit" className="min-h-11 rounded-full bg-ink px-4 text-sm font-medium text-field">
-                Watch
-              </button>
-            </form>
           </div>
           <nav className="text-right font-mono text-xs leading-5">
             <a href={copy.website} className="text-ink">
