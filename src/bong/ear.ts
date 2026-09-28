@@ -1,4 +1,4 @@
-export const EAR = "";
+export const EAR = "0x00A6522700Dc1338b132089EB0862DbEe546a11a";
 
 export const FALLBACK = {
   description:

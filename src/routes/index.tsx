@@ -65,9 +65,13 @@ export function Home() {
     if (/^0x[a-fA-F0-9]{40}$/.test(override)) arm(override);
     else if (/^0x[a-fA-F0-9]{40}$/.test(EAR)) {
       const beat = window.setInterval(() => {
-        void readTunedToken(EAR).then(arm).catch(() => undefined);
+        void readTunedToken(EAR)
+          .then((tuned) => arm(tuned || TOKEN))
+          .catch(() => arm(TOKEN));
       }, 8000);
-      void readTunedToken(EAR).then(arm).catch(() => undefined);
+      void readTunedToken(EAR)
+        .then((tuned) => arm(tuned || TOKEN))
+        .catch(() => arm(TOKEN));
       void readSocials(EAR)
         .then((next) => {
           if (next?.description) setCopy({ ...FALLBACK, ...next });
