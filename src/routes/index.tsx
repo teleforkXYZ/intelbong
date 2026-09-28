@@ -99,9 +99,7 @@ export function Home() {
           <div>
             <p className="font-mono text-[11px] tracking-[0.22em] text-dim">ROBINHOOD CHAIN · LIVE TAPE</p>
             <h1 className="mt-2 font-display text-4xl font-semibold leading-none sm:text-6xl">The Intel Bong</h1>
-            <p className="mt-2 font-mono text-xs text-chip">
-              ${SYMBOL} · {short(token)}
-            </p>
+            <p className="mt-2 font-mono text-xs text-chip">${SYMBOL}</p>
           </div>
           <nav className="text-right font-mono text-xs leading-5">
             <a href={copy.website} className="text-ink">

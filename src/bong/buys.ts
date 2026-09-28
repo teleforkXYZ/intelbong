@@ -1,7 +1,7 @@
 const RPC = "https://rpc.mainnet.chain.robinhood.com";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
-export const TOKEN = "0x1788cc406d7be4365468b46edbf50876246c1e18";
+export const TOKEN = "";
 export const SYMBOL = "BONG";
 export const EXPLORER = "https://robinhoodchain.blockscout.com";
 
