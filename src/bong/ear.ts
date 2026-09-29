@@ -1,4 +1,7 @@
-export const EAR = "0x00A6522700Dc1338b132089EB0862DbEe546a11a";
+export const EAR = "0x162d59A60c303163F125083285d4672f497FfD8C";
+
+/** Paste the token CA here. Empty until it is posted. */
+export const POSTED_CA = "";
 
 export const FALLBACK = {
   description:

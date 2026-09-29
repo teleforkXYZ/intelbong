@@ -11,7 +11,7 @@ import {
   watchSwaps,
   type Move,
 } from "@/bong/buys";
-import { EAR, FALLBACK } from "@/bong/ear";
+import { EAR, FALLBACK, POSTED_CA } from "@/bong/ear";
 import { Spiral } from "@/bong/spiral";
 
 export const Route = createFileRoute("/")({ component: Home });
@@ -24,7 +24,7 @@ export function Home() {
   const [listening, setListening] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [copy, setCopy] = useState(FALLBACK);
-  const [token, setToken] = useState(TOKEN);
+  const [token, setToken] = useState(POSTED_CA || TOKEN);
 
   useEffect(() => {
     let current = "";
@@ -61,12 +61,12 @@ export function Home() {
 
     const beat = window.setInterval(() => {
       void readTunedToken(EAR)
-        .then((tuned) => arm(/^0x[a-fA-F0-9]{40}$/.test(tuned) ? tuned : TOKEN))
-        .catch(() => arm(TOKEN));
+        .then((tuned) => arm(/^0x[a-fA-F0-9]{40}$/.test(tuned) ? tuned : POSTED_CA || TOKEN))
+        .catch(() => arm(POSTED_CA || TOKEN));
     }, 8000);
     void readTunedToken(EAR)
-      .then((tuned) => arm(/^0x[a-fA-F0-9]{40}$/.test(tuned) ? tuned : TOKEN))
-      .catch(() => arm(TOKEN));
+      .then((tuned) => arm(/^0x[a-fA-F0-9]{40}$/.test(tuned) ? tuned : POSTED_CA || TOKEN))
+      .catch(() => arm(POSTED_CA || TOKEN));
     void readSocials(EAR)
       .then((next) => {
         if (next?.description) setCopy({ ...FALLBACK, ...next });
@@ -88,6 +88,7 @@ export function Home() {
   const xHref = copy.xHandle.startsWith("http") ? copy.xHandle : `https://x.com/${copy.xHandle.replace(/^@/, "")}`;
   const buys = cards.filter((card) => card.side === "buy").length;
   const sells = cards.filter((card) => card.side === "sell").length;
+  const shownCa = /^0x[a-fA-F0-9]{40}$/.test(token) ? token : POSTED_CA;
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-field text-ink">
@@ -100,6 +101,8 @@ export function Home() {
             <p className="font-mono text-[11px] tracking-[0.22em] text-dim">ROBINHOOD CHAIN · LIVE TAPE</p>
             <h1 className="mt-2 font-display text-4xl font-semibold leading-none sm:text-6xl">The Intel Bong</h1>
             <p className="mt-2 font-mono text-xs text-chip">${SYMBOL}</p>
+            <p className="mt-3 font-mono text-[11px] tracking-[0.18em] text-dim">CA</p>
+            <p className="mt-1 max-w-md break-all font-mono text-sm text-ink">{shownCa || "soon"}</p>
           </div>
           <nav className="text-right font-mono text-xs leading-5">
             <a href={copy.website} className="text-ink">
@@ -110,9 +113,13 @@ export function Home() {
               @{copy.xHandle.replace(/^@/, "")}
             </a>
             <br />
-            <a href={`${EXPLORER}/address/${token}`} className="text-dim">
-              explorer
-            </a>
+            {shownCa ? (
+              <a href={`${EXPLORER}/address/${shownCa}`} className="text-dim">
+                explorer
+              </a>
+            ) : (
+              <span className="text-dim">explorer</span>
+            )}
           </nav>
         </header>
 
